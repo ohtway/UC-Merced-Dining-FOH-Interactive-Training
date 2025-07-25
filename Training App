@@ -1,0 +1,1597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UC Merced Dining Services - FOH Manager Training Simulator v5</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fbbf24;
+        }
+        
+        .timer-score {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .timer {
+            background: #dc2626;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .score {
+            background: #059669;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .dining-hall {
+            flex: 1;
+            position: relative;
+            background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%);
+            perspective: 1000px;
+            overflow: hidden;
+        }
+        
+        .hall-3d {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            background: 
+                radial-gradient(ellipse at center top, rgba(255,255,255,0.3) 0%, transparent 70%),
+                linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+        
+        .station {
+            position: absolute;
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 1rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transform-style: preserve-3d;
+        }
+        
+        .station:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border-color: #3b82f6;
+        }
+        
+        .station.alert {
+            border-color: #dc2626;
+            background: #fef2f2;
+            animation: pulse 2s infinite;
+        }
+        
+        .station.cooldown {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #f3f4f6;
+        }
+        
+        .station.cooldown:hover {
+            transform: none;
+            border-color: #e2e8f0;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .food-service {
+            top: 20%;
+            left: 15%;
+            width: 200px;
+            height: 120px;
+        }
+        
+        .cashier {
+            top: 20%;
+            right: 15%;
+            width: 200px;
+            height: 120px;
+        }
+        
+        .seating {
+            bottom: 30%;
+            left: 20%;
+            width: 300px;
+            height: 150px;
+        }
+        
+        .kitchen-door {
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 120px;
+        }
+        
+        .kitchen-door:hover {
+            transform: translateX(-50%) translateY(-5px) scale(1.02);
+        }
+        
+        .dish-station {
+            bottom: 20%;
+            right: 20%;
+            width: 180px;
+            height: 120px;
+        }
+        
+        .station-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .station-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+        
+        .station-status {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .countdown-timer {
+            background: #f59e0b;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            display: none;
+            font-weight: 600;
+        }
+        
+        .event-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .event-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+        
+        .event-description {
+            color: #4b5563;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        
+        .choices {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .choice-btn {
+            background: #f3f4f6;
+            border: 2px solid #e5e7eb;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            font-size: 1rem;
+        }
+        
+        .choice-btn:hover {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+        }
+        
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            color: white;
+            text-align: center;
+        }
+        
+        .start-content {
+            max-width: 700px;
+            padding: 2rem;
+        }
+        
+        .start-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #fbbf24;
+        }
+        
+        .start-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .start-btn {
+            background: #fbbf24;
+            color: #1e3a8a;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .start-btn:hover {
+            background: #f59e0b;
+            transform: translateY(-2px);
+        }
+        
+        .end-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            color: white;
+            text-align: center;
+        }
+        
+        .end-content {
+            max-width: 700px;
+            padding: 2rem;
+        }
+        
+        .end-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #fbbf24;
+        }
+        
+        .performance-summary {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .restart-btn {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0.5rem;
+        }
+        
+        .restart-btn:hover {
+            background: #047857;
+            transform: translateY(-2px);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: #1f2937;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            z-index: 150;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            max-width: 300px;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background: #059669;
+        }
+        
+        .notification.warning {
+            background: #d97706;
+        }
+        
+        .notification.error {
+            background: #dc2626;
+        }
+        
+        .notification.neutral {
+            background: #6366f1;
+        }
+        
+        .dinner-rush-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(220, 38, 38, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 250;
+            color: white;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .dinner-rush-content {
+            max-width: 500px;
+            padding: 2rem;
+        }
+        
+        .dinner-rush-title {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            animation: flashRed 1s infinite;
+        }
+        
+        @keyframes flashRed {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .cooldown-indicator {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #dc2626;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .timer-score {
+                gap: 1rem;
+            }
+            
+            .station {
+                padding: 0.75rem;
+            }
+            
+            .food-service, .cashier, .seating, .dish-station, .kitchen-door {
+                width: 160px;
+                height: 100px;
+            }
+            
+            .station-icon {
+                font-size: 1.5rem;
+            }
+            
+            .station-title {
+                font-size: 0.875rem;
+            }
+            
+            .modal-content {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="start-screen" id="startScreen">
+        <div class="start-content">
+            <h1 class="start-title">UC Merced Dining Services</h1>
+            <h2 class="start-subtitle">FOH Manager Training Simulator v5</h2>
+            <p style="margin-bottom: 2rem; opacity: 0.8; line-height: 1.6;">
+                <strong>🚨 NEW FEATURES:</strong><br>
+                • Dinner Rush Chaos - All stations hit simultaneously at 5 minutes<br>
+                • Countdown Timers - IT/maintenance calls require follow-up<br>
+                • Neutral Events - Music stops, WiFi issues, routine checks<br>
+                • Micromanagement Penalties - Avoid over-checking stations<br>
+                • Enhanced Analytics - Response times and performance tracking<br><br>
+                You have 10 minutes to prove your advanced leadership skills!
+            </p>
+            <button class="start-btn" onclick="startGame()">Begin Advanced Training</button>
+        </div>
+    </div>
+
+    <div class="dinner-rush-overlay" id="dinnerRushOverlay">
+        <div class="dinner-rush-content">
+            <h1 class="dinner-rush-title">🚨 DINNER RUSH! 🚨</h1>
+            <p style="font-size: 1.5rem; margin-bottom: 1rem;">All stations are about to be hit simultaneously!</p>
+            <p style="font-size: 1.2rem; opacity: 0.9;">Stay calm, prioritize critical issues, and manage your team effectively!</p>
+        </div>
+    </div>
+
+    <div class="game-container" id="gameContainer" style="display: none;">
+        <div class="header">
+            <div class="logo">UC Merced Dining Services - FOH Manager Training v5</div>
+            <div class="timer-score">
+                <div class="timer" id="timer">10:00</div>
+                <div class="score">Score: <span id="score">0</span></div>
+            </div>
+        </div>
+
+        <div class="dining-hall">
+            <div class="hall-3d">
+                <div class="station food-service" onclick="handleStationClick('food-service')">
+                    <span class="station-icon">🍽️</span>
+                    <div class="station-title">Food Service</div>
+                    <div class="station-status" id="food-service-status">Running smoothly</div>
+                    <div class="countdown-timer" id="food-service-countdown"></div>
+                    <div class="cooldown-indicator" id="food-service-cooldown-indicator"></div>
+                </div>
+
+                <div class="station cashier" onclick="handleStationClick('cashier')">
+                    <span class="station-icon">💳</span>
+                    <div class="station-title">Cashier Station</div>
+                    <div class="station-status" id="cashier-status">Processing orders</div>
+                    <div class="countdown-timer" id="cashier-countdown"></div>
+                    <div class="cooldown-indicator" id="cashier-cooldown-indicator"></div>
+                </div>
+
+                <div class="station seating" onclick="handleStationClick('seating')">
+                    <span class="station-icon">🪑</span>
+                    <div class="station-title">Seating Area</div>
+                    <div class="station-status" id="seating-status">Clean and organized</div>
+                    <div class="countdown-timer" id="seating-countdown"></div>
+                    <div class="cooldown-indicator" id="seating-cooldown-indicator"></div>
+                </div>
+
+                <div class="station kitchen-door" onclick="handleStationClick('kitchen')">
+                    <span class="station-icon">👨‍🍳</span>
+                    <div class="station-title">Kitchen</div>
+                    <div class="station-status" id="kitchen-status">Food prep ongoing</div>
+                    <div class="countdown-timer" id="kitchen-countdown"></div>
+                    <div class="cooldown-indicator" id="kitchen-cooldown-indicator"></div>
+                </div>
+
+                <div class="station dish-station" onclick="handleStationClick('dish-station')">
+                    <span class="station-icon">🧽</span>
+                    <div class="station-title">Dish Station</div>
+                    <div class="station-status" id="dish-station-status">Washing dishes</div>
+                    <div class="countdown-timer" id="dish-station-countdown"></div>
+                    <div class="cooldown-indicator" id="dish-station-cooldown-indicator"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="event-modal" id="eventModal">
+        <div class="modal-content">
+            <h2 class="event-title" id="eventTitle"></h2>
+            <p class="event-description" id="eventDescription"></p>
+            <div class="choices" id="eventChoices"></div>
+        </div>
+    </div>
+
+    <div class="end-screen" id="endScreen">
+        <div class="end-content">
+            <h1 class="end-title">Training Session Complete!</h1>
+            <div class="performance-summary" id="performanceSummary">
+                <div class="performance-item">
+                    <span>Final Score:</span>
+                    <span id="finalScore">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Events Handled:</span>
+                    <span id="eventsHandled">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Good Decisions:</span>
+                    <span id="goodDecisions">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Average Response Time:</span>
+                    <span id="avgResponseTime">0s</span>
+                </div>
+                <div class="performance-item">
+                    <span>Micromanagement Penalties:</span>
+                    <span id="micromanagementPenalties">0</span>
+                </div>
+                <div class="performance-item">
+                    <span>Performance Rating:</span>
+                    <span id="performanceRating">Trainee</span>
+                </div>
+            </div>
+            <div id="feedback" style="margin: 1rem 0; font-size: 1.1rem; opacity: 0.9;"></div>
+            <button class="restart-btn" onclick="restartGame()">Try Again</button>
+            <button class="restart-btn" onclick="location.reload()">New Session</button>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        let gameState = {
+            timeLeft: 600,
+            score: 0,
+            eventsHandled: 0,
+            goodDecisions: 0,
+            gameActive: false,
+            currentEvent: null,
+            eventQueue: [],
+            activeEvents: [],
+            pendingEvents: [],
+            gameTimer: null,
+            rushPeriod: false,
+            dinnerRushTriggered: false,
+            lastEventTime: 0,
+            proactiveChecks: 0,
+            micromanagementCount: {},
+            micromanagementPenalties: 0,
+            stationCooldowns: {},
+            eventStartTimes: {},
+            responseTimes: []
+        };
+
+        // Initialize micromanagement counters for each station
+        const stations = ['food-service', 'cashier', 'seating', 'kitchen', 'dish-station'];
+        stations.forEach(station => {
+            gameState.micromanagementCount[station] = 0;
+        });
+
+        const events = [
+            // Food Service Events (9 events)
+            {
+                id: 'blender_jam',
+                station: 'food-service',
+                title: '🥤 Smoothie Station Down',
+                description: 'The blender at the smoothie station is jammed and making loud grinding noises. Students are waiting for their drinks.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Turn off and clear the jam safely', points: 18, outcome: 'Smart! Blender working perfectly now.' },
+                    { text: 'Offer pre-made alternatives', points: 12, outcome: 'Good customer service, but blender still broken.' },
+                    { text: 'Put "out of order" sign up', points: 8, outcome: 'Safe choice, but customers disappointed.' },
+                    { text: 'Keep trying to blend through it', points: -15, outcome: 'Motor burned out! Equipment damaged.' }
+                ]
+            },
+            {
+                id: 'coffee_machine_break',
+                station: 'food-service',
+                title: '☕ Coffee Machine Failure',
+                description: 'The main coffee machine stopped working during morning rush. Long line of caffeine-dependent students forming.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Switch to backup coffee station', points: 20, outcome: 'Excellent! No service interruption.' },
+                    { text: 'Offer bottled coffee alternatives', points: 15, outcome: 'Good temporary solution.' },
+                    { text: 'Try to fix it yourself', points: 5, outcome: 'Made it worse. Now leaking water everywhere.' },
+                    { text: 'Direct students to campus Starbucks', points: -10, outcome: 'Lost revenue and unhappy customers.' }
+                ]
+            },
+            {
+                id: 'food_temp_warning',
+                station: 'food-service',
+                title: '🌡️ Food Temperature Alert',
+                description: 'The temperature monitoring system is showing that the hot food bar has dropped below safe serving temperature.',
+                priority: 'high',
+                choices: [
+                    { text: 'Check thermometer and adjust heat', points: 20, outcome: 'Perfect! Food safety maintained.' },
+                    { text: 'Move food to backup warmer', points: 18, outcome: 'Quick thinking! Crisis averted.' },
+                    { text: 'Inform supervisor immediately', points: 15, outcome: 'Good protocol, but food cooling meanwhile.' },
+                    { text: 'Monitor and see if it improves', points: -15, outcome: 'Dangerous! Health code violation.' }
+                ]
+            },
+            {
+                id: 'long_line',
+                station: 'food-service',
+                title: '⏰ Rush Hour Backup',
+                description: 'The lunch line is extremely long and students are getting impatient. Some are leaving without eating.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Open second serving line', points: 20, outcome: 'Perfect! Line moving much faster.' },
+                    { text: 'Reassign staff to help serve', points: 18, outcome: 'Great teamwork! Line cleared quickly.' },
+                    { text: 'Ask kitchen to speed up', points: 10, outcome: 'Helps a bit, but line still long.' },
+                    { text: 'Put up "please be patient" sign', points: -5, outcome: 'Students still frustrated and leaving.' }
+                ]
+            },
+            {
+                id: 'angry_customer',
+                station: 'food-service',
+                title: '😠 Upset Customer',
+                description: 'An angry student storms up: "This chicken is completely undercooked! This is disgusting and unsafe!"',
+                priority: 'high',
+                choices: [
+                    { text: 'Apologize and offer fresh food immediately', points: 20, outcome: 'Great customer service! Issue resolved.' },
+                    { text: 'Offer refund and investigate kitchen', points: 18, outcome: 'Professional response and follow-through.' },
+                    { text: 'Get your supervisor right away', points: 10, outcome: 'Supervisor handles it, but customer waited.' },
+                    { text: 'Explain cooking procedures', points: -5, outcome: 'Customer more frustrated. Wrong approach.' }
+                ]
+            },
+            {
+                id: 'allergic_reaction',
+                station: 'food-service',
+                title: '🚨 Allergic Reaction Emergency',
+                description: 'A student is having an allergic reaction after eating. They\'re having trouble breathing and need immediate help.',
+                priority: 'critical',
+                choices: [
+                    { text: 'Call 911 immediately and clear area', points: 25, outcome: 'Perfect emergency response! Student is safe.' },
+                    { text: 'Get their EpiPen and call 911', points: 25, outcome: 'Excellent! You saved their life.' },
+                    { text: 'Call campus health center', points: 10, outcome: 'Too slow! This needed 911 immediately.' },
+                    { text: 'Give them water and have them sit', points: -25, outcome: 'Dangerous! Never delay emergency care.' }
+                ]
+            },
+            {
+                id: 'sudden_surge',
+                station: 'food-service',
+                title: '📈 Unexpected Rush',
+                description: 'A campus event just ended and 200+ students are flooding in at once. Lines are backing up everywhere.',
+                priority: 'high',
+                choices: [
+                    { text: 'Open all serving lines and call for backup', points: 25, outcome: 'Excellent crisis management! Rush handled smoothly.' },
+                    { text: 'Reassign staff to bottleneck areas', points: 20, outcome: 'Smart resource allocation!' },
+                    { text: 'Announce expected wait times', points: 15, outcome: 'Good communication but lines still long.' },
+                    { text: 'Hope it dies down soon', points: -10, outcome: 'Poor leadership! Chaos ensued.' }
+                ]
+            },
+            {
+                id: 'supervisor_visit',
+                station: 'food-service',
+                title: '👔 Supervisor Check-in',
+                description: 'Your district supervisor just walked in for a surprise inspection. They\'re observing operations closely.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Greet them and offer a tour', points: 20, outcome: 'Professional! Supervisor impressed with transparency.' },
+                    { text: 'Continue normal operations confidently', points: 18, outcome: 'Good approach! Shows you run a tight ship.' },
+                    { text: 'Quickly fix any visible issues', points: 10, outcome: 'Obvious scrambling. Supervisor noticed.' },
+                    { text: 'Avoid them and hope they leave', points: -15, outcome: 'Unprofessional! Supervisor concerned about leadership.' }
+                ]
+            },
+            {
+                id: 'student_compliment',
+                station: 'food-service',
+                title: '😊 Customer Compliment',
+                description: 'A student approaches you: "I just wanted to say the food has been really great lately! The staff is doing an awesome job."',
+                priority: 'low',
+                type: 'neutral',
+                choices: [
+                    { text: 'Thank them and share feedback with team', points: 15, outcome: 'Perfect! Team was thrilled to hear positive feedback.' },
+                    { text: 'Thank them warmly for taking time to share', points: 12, outcome: 'Gracious response! Student felt appreciated.' },
+                    { text: 'Ask what specifically they enjoyed', points: 10, outcome: 'Good follow-up! Gained valuable insights.' },
+                    { text: 'Simply say thanks and move on', points: 5, outcome: 'Polite but missed opportunity to engage.' }
+                ]
+            },
+
+            // Cashier Events (8 events)
+            {
+                id: 'pos_freeze',
+                station: 'cashier',
+                title: '💻 POS System Frozen',
+                description: 'The point-of-sale system at the main cashier station has frozen with a long line of hungry students waiting.',
+                priority: 'high',
+                choices: [
+                    { text: 'Use backup tablet immediately', points: 20, outcome: 'Smart! No service interruption.' },
+                    { text: 'Direct customers to other line', points: 15, outcome: 'Good crowd management!' },
+                    { text: 'Restart the POS system', points: 10, outcome: 'System back online after 2 minutes.' },
+                    { text: 'Call tech support', points: 5, outcome: 'They\'ll be here in 20 minutes...', delay: 20, followUp: 'tech_support_arrival' }
+                ]
+            },
+            {
+                id: 'tech_support_arrival',
+                station: 'cashier',
+                title: '🔧 Tech Support Arrived',
+                description: 'The IT technician has arrived to fix the POS system. They need you to show them the problem.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Explain the issue and assist them', points: 15, outcome: 'Great! System fixed and running smoothly.' },
+                    { text: 'Let them figure it out themselves', points: 5, outcome: 'Fixed, but took longer than necessary.' },
+                    { text: 'Ask them to also check other systems', points: 10, outcome: 'Good thinking! Prevented future issues.' },
+                    { text: 'Rush them to work faster', points: -5, outcome: 'Technician annoyed. Poor working relationship.' }
+                ]
+            },
+            {
+                id: 'card_reader_down',
+                station: 'cashier',
+                title: '💳 Card Reader Malfunction',
+                description: 'The credit card reader is not working and students are getting frustrated with cash-only transactions.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Switch to mobile payment backup', points: 20, outcome: 'Excellent! Seamless payment processing restored.' },
+                    { text: 'Direct students to working register', points: 15, outcome: 'Good solution! Lines redistributed.' },
+                    { text: 'Accept cash only temporarily', points: 10, outcome: 'Workable but many students don\'t carry cash.' },
+                    { text: 'Close the register until fixed', points: 5, outcome: 'Safe but creates longer lines elsewhere.' }
+                ]
+            },
+            {
+                id: 'staff_no_show',
+                station: 'cashier',
+                title: '👤 Staff Emergency',
+                description: 'Your cashier just called - they\'re sick and can\'t make it. The lunch rush is starting in 30 minutes.',
+                priority: 'high',
+                choices: [
+                    { text: 'Radio for backup staff immediately', points: 20, outcome: 'Backup arrived just in time!' },
+                    { text: 'Reassign someone from dish station', points: 15, outcome: 'Covered, but dishes backing up.' },
+                    { text: 'Cover the station yourself', points: 12, outcome: 'Dedicated, but you can\'t manage and cashier.' },
+                    { text: 'Call your supervisor', points: 10, outcome: 'They\'re handling it, but you could have acted faster.' }
+                ]
+            },
+            {
+                id: 'register_shortage',
+                station: 'cashier',
+                title: '💰 Cash Register Shortage',
+                description: 'The cashier reports their register is $50 short during the shift count. This needs immediate investigation.',
+                priority: 'high',
+                choices: [
+                    { text: 'Review all transactions immediately', points: 20, outcome: 'Found the error! Incorrect change given earlier.' },
+                    { text: 'Check security footage', points: 18, outcome: 'Good thinking! Spotted the discrepancy.' },
+                    { text: 'Have cashier recount everything', points: 15, outcome: 'Thorough but time-consuming process.' },
+                    { text: 'Report to supervisor immediately', points: 10, outcome: 'Proper protocol but could have investigated first.' }
+                ]
+            },
+            {
+                id: 'break_request',
+                station: 'cashier',
+                title: '⏰ Urgent Break Request',
+                description: 'Your cashier says they desperately need a bathroom break, but there\'s a long line and no backup available.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Radio for immediate backup coverage', points: 18, outcome: 'Good management! Backup arrived quickly.' },
+                    { text: 'Cover the register yourself briefly', points: 15, outcome: 'Team player! Employee grateful.' },
+                    { text: 'Close the line temporarily', points: 12, outcome: 'Customers annoyed but employee needs met.' },
+                    { text: 'Ask them to wait 10 more minutes', points: 5, outcome: 'Employee uncomfortable and frustrated.' }
+                ]
+            },
+            {
+                id: 'payment_dispute',
+                station: 'cashier',
+                title: '💳 Payment Dispute',
+                description: 'A student claims they were charged twice for their meal. They\'re showing you their bank app with two identical charges.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Check transaction log and process refund', points: 20, outcome: 'Professional handling! Student satisfied with resolution.' },
+                    { text: 'Call your supervisor for guidance', points: 15, outcome: 'Good protocol! Supervisor approved the refund.' },
+                    { text: 'Ask them to contact their bank first', points: 10, outcome: 'Reasonable but student felt dismissed.' },
+                    { text: 'Explain it might be a pending charge', points: 5, outcome: 'Student left frustrated and unconvinced.' }
+                ]
+            },
+            {
+                id: 'line_cutter',
+                station: 'cashier',
+                title: '😤 Line Cutting Incident',
+                description: 'Students are arguing because someone cut in line. The situation is escalating and other customers are getting involved.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Politely ask the cutter to go to back of line', points: 18, outcome: 'Diplomatic solution! Order restored peacefully.' },
+                    { text: 'Serve the cutter to avoid further conflict', points: 10, outcome: 'Avoided confrontation but others felt unfairness.' },
+                    { text: 'Call security to handle the situation', points: 12, outcome: 'Effective but escalated a minor issue.' },
+                    { text: 'Ignore it and hope it resolves itself', points: -5, outcome: 'Situation worsened! More customers got angry.' }
+                ]
+            },
+
+            // Kitchen Events (7 events)
+            {
+                id: 'freezer_alarm',
+                station: 'kitchen',
+                title: '🧊 Freezer Temperature Alert',
+                description: 'The walk-in freezer alarm is beeping - temperature has risen to 15°F. Food safety is at risk.',
+                priority: 'high',
+                choices: [
+                    { text: 'Check door seal and reset immediately', points: 20, outcome: 'Perfect! Temperature stabilized quickly.' },
+                    { text: 'Move critical items to backup freezer', points: 18, outcome: 'Good thinking! Food safety maintained.' },
+                    { text: 'Call maintenance right away', points: 10, outcome: 'They\'re coming in 30 minutes...', delay: 30, followUp: 'maintenance_arrival' },
+                    { text: 'Monitor temperature for now', points: -20, outcome: 'Dangerous! Thousands in food loss.' }
+                ]
+            },
+            {
+                id: 'maintenance_arrival',
+                station: 'kitchen',
+                title: '🔧 Maintenance Team Arrived',
+                description: 'The maintenance crew is here to fix the freezer. They need access and want to know the problem details.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Brief them thoroughly and clear access', points: 18, outcome: 'Excellent! Freezer repaired efficiently.' },
+                    { text: 'Show them the problem and assist', points: 15, outcome: 'Good cooperation! Issue resolved.' },
+                    { text: 'Let them handle it independently', points: 10, outcome: 'Fixed but took longer than needed.' },
+                    { text: 'Ask them to hurry due to food safety', points: 5, outcome: 'Rushed job. May have future issues.' }
+                ]
+            },
+            {
+                id: 'staff_conflict',
+                station: 'kitchen',
+                title: '👥 Employee Conflict',
+                description: 'Two kitchen staff members are arguing loudly about work assignments. Other employees are getting distracted.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Separate them and mediate privately', points: 20, outcome: 'Professional handling! Conflict resolved.' },
+                    { text: 'Reassign them to different stations', points: 15, outcome: 'Good temporary solution.' },
+                    { text: 'Document and report to supervisor', points: 12, outcome: 'Proper procedure, but immediate issue unresolved.' },
+                    { text: 'Tell them to work it out themselves', points: -5, outcome: 'Conflict escalated. Productivity down.' }
+                ]
+            },
+            {
+                id: 'delivery_delay',
+                station: 'kitchen',
+                title: '🚚 Food Delivery Late',
+                description: 'The produce delivery is 2 hours late and you\'re running low on fresh vegetables for dinner service.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Call supplier for ETA and backup plan', points: 20, outcome: 'Great! Found emergency supplier nearby.' },
+                    { text: 'Modify menu to use available ingredients', points: 18, outcome: 'Creative solution! Customers didn\'t notice.' },
+                    { text: 'Send someone to grocery store', points: 12, outcome: 'Expensive but kept service running.' },
+                    { text: 'Wait and hope delivery arrives soon', points: -10, outcome: 'Poor planning! Ran out during dinner rush.' }
+                ]
+            },
+            {
+                id: 'oven_malfunction',
+                station: 'kitchen',
+                title: '🔥 Oven Temperature Issues',
+                description: 'The main oven is not heating properly and food is taking twice as long to cook.',
+                priority: 'high',
+                choices: [
+                    { text: 'Switch to backup ovens immediately', points: 20, outcome: 'Smart! No service interruption.' },
+                    { text: 'Adjust cooking times and monitor closely', points: 15, outcome: 'Good adaptation! Service maintained.' },
+                    { text: 'Call for repair technician', points: 10, outcome: 'They\'ll be here in 45 minutes...', delay: 45, followUp: 'oven_repair_arrival' },
+                    { text: 'Continue using and hope it improves', points: -15, outcome: 'Dangerous! Undercooked food served.' }
+                ]
+            },
+            {
+                id: 'oven_repair_arrival',
+                station: 'kitchen',
+                title: '🔧 Oven Repair Technician',
+                description: 'The appliance repair technician has arrived to fix the oven. They need to shut down the unit completely.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Coordinate shutdown during slow period', points: 18, outcome: 'Perfect timing! Minimal service impact.' },
+                    { text: 'Prepare backup cooking methods first', points: 15, outcome: 'Good planning! Ready for any issues.' },
+                    { text: 'Let them work immediately', points: 10, outcome: 'Fixed but caused service delays.' },
+                    { text: 'Ask them to work around service', points: 5, outcome: 'Inefficient repair. May need return visit.' }
+                ]
+            },
+            {
+                id: 'music_stops',
+                station: 'kitchen',
+                title: '🎵 Background Music Stopped',
+                description: 'The background music system has stopped playing. The dining hall feels eerily quiet and students are noticing.',
+                priority: 'low',
+                type: 'neutral',
+                choices: [
+                    { text: 'Go to chef\'s office and restart Spotify', points: 10, outcome: 'Perfect! Music restored and atmosphere improved.' },
+                    { text: 'Ask someone else to handle it', points: 5, outcome: 'Delegated well! Music back on shortly.' },
+                    { text: 'Check if students actually mind', points: 8, outcome: 'Some prefer quiet, others want music back.' },
+                    { text: 'Leave it - focus on more important things', points: 0, outcome: 'Neutral choice. Atmosphere remained quiet.' }
+                ]
+            },
+
+            // Seating Area Events (8 events)
+            {
+                id: 'floor_spill',
+                station: 'seating',
+                title: '💧 Slip Hazard Alert',
+                description: 'A student approaches you: "Excuse me, there\'s a big puddle of water near the salad bar. Someone might slip!"',
+                priority: 'medium',
+                choices: [
+                    { text: 'Get wet floor signs and clean immediately', points: 20, outcome: 'Excellent safety response!' },
+                    { text: 'Block area and radio for help', points: 15, outcome: 'Good temporary solution.' },
+                    { text: 'Call custodial services', points: 10, outcome: 'They\'ll be here in 10 minutes...' },
+                    { text: 'Thank them and check it later', points: -20, outcome: 'Someone slipped! Incident report needed.' }
+                ]
+            },
+            {
+                id: 'broken_chair',
+                station: 'seating',
+                title: '🪑 Safety Hazard',
+                description: 'You notice a chair with a broken leg that could collapse if someone sits on it.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Remove chair immediately', points: 20, outcome: 'Safety first! Hazard eliminated.' },
+                    { text: 'Put "out of order" tape on it', points: 15, outcome: 'Good temporary fix.' },
+                    { text: 'Report to maintenance', points: 10, outcome: 'Reported, but chair still dangerous meanwhile.' },
+                    { text: 'Leave it - looks stable enough', points: -25, outcome: 'Someone got hurt! Major incident.' }
+                ]
+            },
+            {
+                id: 'table_collapse',
+                station: 'seating',
+                title: '🪑 Table Collapse',
+                description: 'A dining table just collapsed while students were eating! Food everywhere and one student may be injured.',
+                priority: 'high',
+                choices: [
+                    { text: 'Check for injuries and clear area immediately', points: 25, outcome: 'Perfect emergency response!' },
+                    { text: 'Call for medical help and secure scene', points: 22, outcome: 'Excellent safety protocol!' },
+                    { text: 'Move students to other tables', points: 10, outcome: 'Helpful but missed checking for injuries.' },
+                    { text: 'Clean up the mess first', points: -15, outcome: 'Wrong priority! Check injuries first.' }
+                ]
+            },
+            {
+                id: 'bathroom_flood',
+                station: 'seating',
+                title: '🚰 Bathroom Emergency',
+                description: 'The main restroom is flooding! Water is spreading into the dining area and customers are panicking.',
+                priority: 'critical',
+                choices: [
+                    { text: 'Shut off water and call maintenance immediately', points: 25, outcome: 'Perfect crisis management! Damage minimized.' },
+                    { text: 'Block area and redirect customers', points: 20, outcome: 'Good safety response!' },
+                    { text: 'Get mops and try to contain it', points: 10, outcome: 'Helpful but need professional help for this.' },
+                    { text: 'Put up wet floor signs', points: -10, outcome: 'Inadequate response! Flood spreading.' }
+                ]
+            },
+            {
+                id: 'fire_drill',
+                station: 'seating',
+                title: '🚨 Fire Drill Alert',
+                description: 'The fire alarm is going off! You need to evacuate the dining hall safely and quickly.',
+                priority: 'critical',
+                choices: [
+                    { text: 'Direct orderly evacuation immediately', points: 25, outcome: 'Perfect! Everyone evacuated safely.' },
+                    { text: 'Help mobility-impaired customers first', points: 22, outcome: 'Excellent priority! Great leadership.' },
+                    { text: 'Check if it\'s real fire first', points: -20, outcome: 'Never delay evacuation! Safety protocol violated.' },
+                    { text: 'Announce it\'s just a drill', points: -15, outcome: 'Wrong! Always treat alarms as real.' }
+                ]
+            },
+            {
+                id: 'noise_complaint',
+                station: 'seating',
+                title: '🔊 Noise Level Issue',
+                description: 'Several students complain that the dining hall is too loud and they can\'t study or have conversations.',
+                priority: 'low',
+                type: 'neutral',
+                choices: [
+                    { text: 'Adjust background music volume', points: 15, outcome: 'Good solution! Atmosphere improved.' },
+                    { text: 'Ask louder groups to keep it down politely', points: 12, outcome: 'Diplomatic approach! Some improvement.' },
+                    { text: 'Explain it\'s naturally busy during peak hours', points: 8, outcome: 'Reasonable but students still frustrated.' },
+                    { text: 'Ignore - dining halls are supposed to be social', points: -5, outcome: 'Dismissive attitude. Students left unhappy.' }
+                ]
+            },
+            {
+                id: 'wifi_slow',
+                station: 'seating',
+                title: '📶 WiFi Performance Issues',
+                description: 'Students are complaining that the dining hall WiFi is very slow today. Some are having trouble with online classes.',
+                priority: 'low',
+                type: 'neutral',
+                choices: [
+                    { text: 'Contact IT to check network performance', points: 12, outcome: 'Good initiative! IT found and fixed the issue.' },
+                    { text: 'Post signs about campus WiFi alternatives', points: 8, outcome: 'Helpful information! Students appreciated it.' },
+                    { text: 'Explain it\'s not your department', points: 0, outcome: 'Technically correct but not very helpful.' },
+                    { text: 'Suggest they use mobile data', points: -5, outcome: 'Not helpful for students with limited data plans.' }
+                ]
+            },
+            {
+                id: 'suggestion_box_full',
+                station: 'seating',
+                title: '📝 Suggestion Box Full',
+                description: 'The customer suggestion box is overflowing with feedback cards. Some are falling on the floor.',
+                priority: 'low',
+                type: 'neutral',
+                choices: [
+                    { text: 'Empty box and review suggestions immediately', points: 15, outcome: 'Excellent! Found valuable feedback and improvement ideas.' },
+                    { text: 'Empty box and file for later review', points: 10, outcome: 'Organized approach! Suggestions properly stored.' },
+                    { text: 'Ask someone else to handle it', points: 5, outcome: 'Delegated appropriately. Task completed.' },
+                    { text: 'Deal with it at end of shift', points: 0, outcome: 'Procrastinated but eventually handled.' }
+                ]
+            },
+
+            // Dish Station Events (6 events)
+            {
+                id: 'dish_machine_down',
+                station: 'dish-station',
+                title: '🚨 Dish Machine Malfunction',
+                description: 'The main dish machine has stopped working during peak lunch hour. Dirty dishes are piling up and the line is getting longer.',
+                priority: 'high',
+                choices: [
+                    { text: 'Use backup washing station immediately', points: 20, outcome: 'Excellent! You kept operations running smoothly.' },
+                    { text: 'Restart the machine and check for clogs', points: 15, outcome: 'Good call! Machine is back online.' },
+                    { text: 'Call for repair service', points: 10, outcome: 'They\'ll be here in 40 minutes...', delay: 40, followUp: 'dish_repair_arrival' },
+                    { text: 'Log the issue and continue', points: -10, outcome: 'Poor choice. Health code violations mounting.' }
+                ]
+            },
+            {
+                id: 'dish_repair_arrival',
+                station: 'dish-station',
+                title: '🔧 Dish Machine Repair',
+                description: 'The repair technician has arrived to fix the dish machine. They need to run diagnostics first.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Clear area and assist with diagnostics', points: 18, outcome: 'Great cooperation! Machine fixed quickly.' },
+                    { text: 'Continue backup operations while they work', points: 15, outcome: 'Smart multitasking! No service interruption.' },
+                    { text: 'Let them work independently', points: 10, outcome: 'Fixed but took longer than necessary.' },
+                    { text: 'Rush them to finish quickly', points: 5, outcome: 'Hasty repair. Machine broke again later.' }
+                ]
+            },
+            {
+                id: 'chemical_shortage',
+                station: 'dish-station',
+                title: '🧪 Sanitizer Running Low',
+                description: 'The dish sanitizer is almost empty and you need it for health code compliance. No backup supply available.',
+                priority: 'high',
+                choices: [
+                    { text: 'Emergency order from supplier immediately', points: 20, outcome: 'Perfect! Emergency delivery arranged.' },
+                    { text: 'Check other campus dining locations', points: 18, outcome: 'Smart! Borrowed supply from nearby location.' },
+                    { text: 'Use temporary manual sanitizing method', points: 12, outcome: 'Compliant but very time-consuming.' },
+                    { text: 'Continue until completely empty', points: -20, outcome: 'Health code violation! Inspector noticed.' }
+                ]
+            },
+            {
+                id: 'dish_backup',
+                station: 'dish-station',
+                title: '🍽️ Dish Shortage Crisis',
+                description: 'You\'re running out of clean plates during dinner rush. The dish machine can\'t keep up with demand.',
+                priority: 'high',
+                choices: [
+                    { text: 'Implement emergency hand-washing protocol', points: 20, outcome: 'Excellent crisis management! Service maintained.' },
+                    { text: 'Ask customers to bus their own tables', points: 15, outcome: 'Creative solution! Students were cooperative.' },
+                    { text: 'Slow down food service to match dish capacity', points: 10, outcome: 'Logical but created long lines.' },
+                    { text: 'Use disposable plates temporarily', points: 5, outcome: 'Expensive and environmentally poor choice.' }
+                ]
+            },
+            {
+                id: 'water_pressure_low',
+                station: 'dish-station',
+                title: '💧 Low Water Pressure',
+                description: 'The water pressure at the dish station has dropped significantly, making it hard to rinse dishes properly.',
+                priority: 'medium',
+                choices: [
+                    { text: 'Check other faucets and call facilities', points: 18, outcome: 'Good troubleshooting! Found main valve issue.' },
+                    { text: 'Adjust washing procedure for low pressure', points: 15, outcome: 'Adaptive solution! Maintained cleanliness standards.' },
+                    { text: 'Continue normal operations', points: 5, outcome: 'Dishes not properly cleaned. Quality issues.' },
+                    { text: 'Close dish station until fixed', points: -10, outcome: 'Extreme response! Created major backup.' }
+                ]
+            },
+            {
+                id: 'dish_staff_injury',
+                station: 'dish-station',
+                title: '🩹 Staff Injury',
+                description: 'A dish station worker cut their hand on a broken glass. They need immediate attention and can\'t continue working.',
+                priority: 'high',
+                choices: [
+                    { text: 'Provide first aid and call for replacement', points: 25, outcome: 'Perfect response! Employee safe and station covered.' },
+                    { text: 'Send them to health center and cover station', points: 20, outcome: 'Good care! You stepped in to help.' },
+                    { text: 'Have them take a break and return later', points: -10, outcome: 'Unsafe! Injured workers need proper care.' },
+                    { text: 'Ask them to work with bandaged hand', points: -25, outcome: 'Dangerous and illegal! Major safety violation.' }
+                ]
+            }
+        ];
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'flex';
+            
+            gameState.gameActive = true;
+            gameState.timeLeft = 600;
+            gameState.score = 0;
+            gameState.eventsHandled = 0;
+            gameState.goodDecisions = 0;
+            gameState.proactiveChecks = 0;
+            gameState.micromanagementPenalties = 0;
+            gameState.stationCooldowns = {};
+            gameState.eventStartTimes = {};
+            gameState.responseTimes = [];
+            gameState.dinnerRushTriggered = false;
+            gameState.eventQueue = [];
+            gameState.activeEvents = [];
+            gameState.pendingEvents = [];
+            
+            // Reset micromanagement counters
+            stations.forEach(station => {
+                gameState.micromanagementCount[station] = 0;
+            });
+            
+            updateDisplay();
+            startTimer();
+            scheduleRandomEvents();
+        }
+
+        function startTimer() {
+            gameState.gameTimer = setInterval(() => {
+                gameState.timeLeft--;
+                updateDisplay();
+                updateCountdowns();
+                
+                // Trigger dinner rush at 5 minutes (300 seconds left)
+                if (gameState.timeLeft === 300 && !gameState.dinnerRushTriggered) {
+                    triggerDinnerRush();
+                }
+                
+                if (gameState.timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function updateDisplay() {
+            const minutes = Math.floor(gameState.timeLeft / 60);
+            const seconds = gameState.timeLeft % 60;
+            document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('score').textContent = gameState.score;
+        }
+
+        function updateCountdowns() {
+            gameState.pendingEvents.forEach(pendingEvent => {
+                pendingEvent.timeLeft--;
+                const countdownElement = document.getElementById(`${pendingEvent.station}-countdown`);
+                if (countdownElement) {
+                    countdownElement.style.display = 'block';
+                    countdownElement.textContent = `${pendingEvent.description}: ${pendingEvent.timeLeft}s`;
+                }
+                
+                if (pendingEvent.timeLeft <= 0) {
+                    // Trigger the follow-up event
+                    const followUpEvent = events.find(e => e.id === pendingEvent.followUpId);
+                    if (followUpEvent) {
+                        triggerSpecificEvent(followUpEvent);
+                    }
+                    countdownElement.style.display = 'none';
+                }
+            });
+            
+            // Remove completed pending events
+            gameState.pendingEvents = gameState.pendingEvents.filter(pe => pe.timeLeft > 0);
+            
+            // Update station cooldown indicators
+            stations.forEach(station => {
+                const cooldownTime = gameState.stationCooldowns[station];
+                const indicator = document.getElementById(`${station}-cooldown-indicator`);
+                
+                if (cooldownTime && cooldownTime > Date.now()) {
+                    const secondsLeft = Math.ceil((cooldownTime - Date.now()) / 1000);
+                    indicator.style.display = 'flex';
+                    indicator.textContent = secondsLeft;
+                } else {
+                    indicator.style.display = 'none';
+                }
+            });
+        }
+
+        function triggerDinnerRush() {
+            gameState.dinnerRushTriggered = true;
+            
+            // Show dinner rush overlay
+            const overlay = document.getElementById('dinnerRushOverlay');
+            overlay.style.display = 'flex';
+            
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                
+                // Trigger one event at each station simultaneously
+                stations.forEach((station, index) => {
+                    setTimeout(() => {
+                        const stationEvents = events.filter(e => 
+                            e.station === station && 
+                            !gameState.eventQueue.includes(e.id) &&
+                            !gameState.activeEvents.some(active => active.station === station)
+                        );
+                        if (stationEvents.length > 0) {
+                            const randomEvent = stationEvents[Math.floor(Math.random() * stationEvents.length)];
+                            triggerSpecificEvent(randomEvent);
+                        }
+                    }, index * 2000); // Stagger by 2 seconds each
+                });
+                
+            }, 3000);
+        }
+
+        function scheduleRandomEvents() {
+            if (!gameState.gameActive) return;
+            
+            const timeElapsed = 600 - gameState.timeLeft;
+            const isRushTime = (timeElapsed >= 120 && timeElapsed <= 240) || (timeElapsed >= 360 && timeElapsed <= 480);
+            
+            let baseDelay, rushMultiplier;
+            
+            if (isRushTime && !gameState.rushPeriod) {
+                gameState.rushPeriod = true;
+                showNotification('Rush period starting! Stay alert for multiple issues.', 'warning');
+            } else if (!isRushTime && gameState.rushPeriod) {
+                gameState.rushPeriod = false;
+                showNotification('Rush period ending. Good job managing the chaos!', 'success');
+            }
+            
+            if (gameState.rushPeriod) {
+                baseDelay = Math.random() * 15000 + 10000; // 10-25 seconds
+                rushMultiplier = Math.random() < 0.4 ? 2 : 1; // 40% chance of multiple events
+            } else {
+                baseDelay = Math.random() * 35000 + 25000; // 25-60 seconds
+                rushMultiplier = 1;
+            }
+            
+            setTimeout(() => {
+                if (gameState.gameActive) {
+                    for (let i = 0; i < rushMultiplier; i++) {
+                        setTimeout(() => {
+                            if (gameState.gameActive && gameState.activeEvents.length < 4) {
+                                triggerRandomEvent();
+                            }
+                        }, i * 4000);
+                    }
+                }
+                scheduleRandomEvents();
+            }, baseDelay);
+        }
+
+        function triggerRandomEvent() {
+            const availableEvents = events.filter(event => 
+                !gameState.eventQueue.includes(event.id) && 
+                !gameState.activeEvents.some(active => active.station === event.station)
+            );
+            
+            if (availableEvents.length === 0) return;
+            
+            let selectedEvent;
+            if (gameState.rushPeriod) {
+                const highPriorityEvents = availableEvents.filter(e => e.priority === 'high' || e.priority === 'critical');
+                const eventPool = highPriorityEvents.length > 0 ? highPriorityEvents : availableEvents;
+                selectedEvent = eventPool[Math.floor(Math.random() * eventPool.length)];
+            } else {
+                selectedEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+            }
+            
+            triggerSpecificEvent(selectedEvent);
+        }
+
+        function triggerSpecificEvent(event) {
+            gameState.eventQueue.push(event.id);
+            gameState.activeEvents.push(event);
+            gameState.lastEventTime = 600 - gameState.timeLeft;
+            gameState.eventStartTimes[event.id] = Date.now();
+            
+            const station = document.querySelector(`.${event.station}`);
+            station.classList.add('alert');
+            
+            const statusElement = document.getElementById(`${event.station}-status`);
+            const priorityText = {
+                'critical': '🚨 URGENT!',
+                'high': '⚠️ Needs attention!',
+                'medium': '⚠️ Issue detected',
+                'low': '💡 Check when possible'
+            };
+            statusElement.textContent = priorityText[event.priority] || '⚠️ Needs attention!';
+            statusElement.style.color = event.priority === 'critical' ? '#dc2626' : '#d97706';
+            
+            const notificationText = event.priority === 'critical' ? 
+                'URGENT situation requires immediate attention!' : 
+                event.type === 'neutral' ? 'New situation to handle.' :
+                'New situation requires your attention!';
+            const notificationType = event.priority === 'critical' ? 'error' : 
+                                   event.type === 'neutral' ? 'neutral' : 'warning';
+            
+            showNotification(notificationText, notificationType);
+        }
+
+        function handleStationClick(stationId) {
+            // Check for cooldown
+            if (gameState.stationCooldowns[stationId] && gameState.stationCooldowns[stationId] > Date.now()) {
+                showNotification('Station on cooldown. Avoid micromanaging!', 'warning');
+                return;
+            }
+            
+            const alertStation = document.querySelector(`.${stationId}.alert`);
+            if (!alertStation) {
+                gameState.proactiveChecks++;
+                gameState.micromanagementCount[stationId]++;
+                
+                // Micromanagement penalty system (per station)
+                if (gameState.micromanagementCount[stationId] >= 3) {
+                    gameState.micromanagementPenalties++;
+                    gameState.score -= 10;
+                    gameState.micromanagementCount[stationId] = 0;
+                    
+                    // Set cooldown for this station (30 seconds)
+                    gameState.stationCooldowns[stationId] = Date.now() + 30000;
+                    document.querySelector(`.${stationId}`).classList.add('cooldown');
+                    
+                    setTimeout(() => {
+                        document.querySelector(`.${stationId}`).classList.remove('cooldown');
+                    }, 30000);
+                    
+                    showNotification('Micromanagement penalty! -10 points. Station on cooldown.', 'error');
+                    return;
+                }
+                
+                const proactiveMessages = [
+                    'Station running smoothly. Good proactive management!',
+                    'Everything looks good here. Your attention to detail is noted.',
+                    'No issues detected. Excellent preventive checking!',
+                    'Station operating normally. Keep up the good work!'
+                ];
+                
+                if (Math.random() < 0.25) {
+                    gameState.score += 2;
+                    showNotification(proactiveMessages[Math.floor(Math.random() * proactiveMessages.length)] + ' (+2 points)', 'success');
+                } else {
+                    showNotification('No issues at this station currently.', 'success');
+                }
+                return;
+            }
+            
+            const event = gameState.activeEvents.find(e => e.station === stationId);
+            if (event) {
+                showEvent(event);
+            }
+        }
+
+        function showEvent(event) {
+            gameState.currentEvent = event;
+            
+            document.getElementById('eventTitle').textContent = event.title;
+            document.getElementById('eventDescription').textContent = event.description;
+            
+            const choicesContainer = document.getElementById('eventChoices');
+            choicesContainer.innerHTML = '';
+            
+            event.choices.forEach((choice, index) => {
+                const button = document.createElement('button');
+                button.className = 'choice-btn';
+                button.textContent = choice.text;
+                button.onclick = () => handleChoice(choice, event);
+                choicesContainer.appendChild(button);
+            });
+            
+            document.getElementById('eventModal').style.display = 'flex';
+        }
+
+        function handleChoice(choice, event) {
+            // Calculate response time
+            const responseTime = (Date.now() - gameState.eventStartTimes[event.id]) / 1000;
+            gameState.responseTimes.push(responseTime);
+            
+            gameState.score += choice.points;
+            gameState.eventsHandled++;
+            
+            if (choice.points > 15) {
+                gameState.goodDecisions++;
+            }
+            
+            // Handle delayed events
+            if (choice.delay && choice.followUp) {
+                gameState.pendingEvents.push({
+                    station: event.station,
+                    timeLeft: choice.delay,
+                    followUpId: choice.followUp,
+                    description: choice.delay === 20 ? 'Tech support arriving' : 
+                               choice.delay === 30 ? 'Maintenance arriving' : 
+                               choice.delay === 40 ? 'Repair service arriving' :
+                               choice.delay === 45 ? 'Oven repair arriving' : 'Service arriving'
+                });
+            }
+            
+            gameState.activeEvents = gameState.activeEvents.filter(e => e.id !== event.id);
+            
+            const station = document.querySelector(`.${event.station}`);
+            station.classList.remove('alert');
+            
+            const statusElement = document.getElementById(`${event.station}-status`);
+            const statusMessages = {
+                'food-service': 'Running smoothly',
+                'cashier': 'Processing orders', 
+                'seating': 'Clean and organized',
+                'kitchen': 'Food prep ongoing',
+                'dish-station': 'Washing dishes'
+            };
+            statusElement.textContent = choice.points > 0 ? 'Resolved ✓' : statusMessages[event.station] || 'Resolved';
+            statusElement.style.color = choice.points > 0 ? '#059669' : '#6b7280';
+            
+            const notificationType = choice.points > 0 ? 'success' : 'error';
+            const pointsText = choice.points > 0 ? ` (+${choice.points} points)` : ` (${choice.points} points)`;
+            showNotification(choice.outcome + pointsText, notificationType);
+            
+            document.getElementById('eventModal').style.display = 'none';
+            gameState.currentEvent = null;
+            
+            updateDisplay();
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        function endGame() {
+            gameState.gameActive = false;
+            clearInterval(gameState.gameTimer);
+            
+            // Calculate average response time
+            const avgResponseTime = gameState.responseTimes.length > 0 ? 
+                (gameState.responseTimes.reduce((a, b) => a + b, 0) / gameState.responseTimes.length).toFixed(1) : 0;
+            
+            // Calculate performance rating
+            let rating = 'Trainee';
+            const adjustedScore = gameState.score - (gameState.micromanagementPenalties * 10);
+            if (adjustedScore >= 150) rating = 'Expert Manager';
+            else if (adjustedScore >= 120) rating = 'Senior Manager';
+            else if (adjustedScore >= 90) rating = 'Assistant Manager';
+            else if (adjustedScore >= 60) rating = 'Supervisor';
+            
+            // Generate feedback
+            let feedback = '';
+            if (gameState.micromanagementPenalties > 2) {
+                feedback = 'Focus on trusting your team and avoiding over-checking stations. Delegate more and manage strategically.';
+            } else if (gameState.goodDecisions >= 8) {
+                feedback = 'Outstanding leadership! You handled multiple crises simultaneously with professionalism and made excellent strategic decisions.';
+            } else if (gameState.goodDecisions >= 5) {
+                feedback = 'Good management skills! You showed solid decision-making during the dinner rush and handled most situations effectively.';
+            } else if (gameState.goodDecisions >= 3) {
+                feedback = 'Decent performance! Work on faster decision-making and prioritizing critical issues during rush periods.';
+            } else {
+                feedback = 'Keep practicing! Focus on emergency response, food safety, and managing multiple simultaneous issues effectively.';
+            }
+            
+            // Update end screen
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('eventsHandled').textContent = gameState.eventsHandled;
+            document.getElementById('goodDecisions').textContent = gameState.goodDecisions;
+            document.getElementById('avgResponseTime').textContent = avgResponseTime + 's';
+            document.getElementById('micromanagementPenalties').textContent = gameState.micromanagementPenalties;
+            document.getElementById('performanceRating').textContent = rating;
+            document.getElementById('feedback').textContent = feedback;
+            
+            document.getElementById('endScreen').style.display = 'flex';
+        }
+
+        function restartGame() {
+            // Reset game state
+            gameState = {
+                timeLeft: 600,
+                score: 0,
+                eventsHandled: 0,
+                goodDecisions: 0,
+                gameActive: false,
+                currentEvent: null,
+                eventQueue: [],
+                activeEvents: [],
+                pendingEvents: [],
+                gameTimer: null,
+                rushPeriod: false,
+                dinnerRushTriggered: false,
+                lastEventTime: 0,
+                proactiveChecks: 0,
+                micromanagementCount: {},
+                micromanagementPenalties: 0,
+                stationCooldowns: {},
+                eventStartTimes: {},
+                responseTimes: []
+            };
+            
+            // Reset micromanagement counters
+            stations.forEach(station => {
+                gameState.micromanagementCount[station] = 0;
+            });
+            
+            // Reset UI
+            document.getElementById('endScreen').style.display = 'none';
+            document.getElementById('eventModal').style.display = 'none';
+            document.getElementById('dinnerRushOverlay').style.display = 'none';
+            
+            // Reset all stations
+            document.querySelectorAll('.station').forEach(station => {
+                station.classList.remove('alert', 'cooldown');
+            });
+            
+            document.querySelectorAll('[id$="-status"]').forEach(status => {
+                status.style.color = '#6b7280';
+            });
+            
+            document.querySelectorAll('.countdown-timer').forEach(timer => {
+                timer.style.display = 'none';
+            });
+            
+            document.querySelectorAll('.cooldown-indicator').forEach(indicator => {
+                indicator.style.display = 'none';
+            });
+            
+            document.getElementById('food-service-status').textContent = 'Running smoothly';
+            document.getElementById('cashier-status').textContent = 'Processing orders';
+            document.getElementById('seating-status').textContent = 'Clean and organized';
+            document.getElementById('kitchen-status').textContent = 'Food prep ongoing';
+            document.getElementById('dish-station-status').textContent = 'Washing dishes';
+            
+            startGame();
+        }
+
+        // Initialize the game
+        document.addEventListener('DOMContentLoaded', function() {
+            // Game is ready to start
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96477a5cd3eb15a2',t:'MTc1MzQwMjY4NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
